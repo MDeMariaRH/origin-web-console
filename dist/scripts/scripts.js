@@ -2838,15 +2838,42 @@ containerEndTime:_.get(c, [ d, "finishedAt" ])
 });
 }
 };
+a.onTerminalSelectChange = function(b) {
+_.each(a.containerTerminals, function(a) {
+a.isActive = !1;
+}), b.value.isActive = !0, b.value.isUsed = !0;
+}, a.tabSelect = function() {
+a.terminalTabWasSelected = !0;
+};
+var n = function(b, c) {
+c = c || {};
+var d = !!c;
+_.each(b, function(a, b) {
+c[a.name] || (c[a.name] = {
+name:a.name,
+isActive:d && 0 === b,
+isUsed:d && 0 === b
+});
+});
+var e = {
+key:_.findKey(a.containerTerminals, {
+isActive:!0
+}),
+value:_.find(a.containerTerminals, {
+isActive:!0
+})
+};
+return a.selected = e, c;
+};
 j.get(c.project).then(_.spread(function(d, h) {
 a.project = d, a.projectContext = h, f.get("pods", c.pod, h).then(function(b) {
 a.loaded = !0, a.pod = b, l(b), m();
 var d = {};
-d[b.metadata.name] = b, g.fetchReferencedImageStreamImages(d, a.imagesByDockerReference, a.imageStreamImageRefByDockerReference, h), k.push(f.watchObject("pods", c.pod, h, function(b, c) {
+d[b.metadata.name] = b, g.fetchReferencedImageStreamImages(d, a.imagesByDockerReference, a.imageStreamImageRefByDockerReference, h), a.containerTerminals = n(b.status.containerStatuses), k.push(f.watchObject("pods", c.pod, h, function(b, c) {
 "DELETED" === c && (a.alerts.deleted = {
 type:"warning",
 message:"This pod has been deleted."
-}), a.pod = b, l(b), m();
+}), a.pod = b, l(b), m(), a.containerTerminals = n(a.pod.status.containerStatuses, a.containerTerminals);
 }));
 }, function(c) {
 a.loaded = !0, a.alerts.load = {
@@ -2859,7 +2886,7 @@ a.imageStreams = b.by("metadata.name"), g.buildDockerRefMapForImageStreams(a.ima
 })), k.push(f.watch("builds", h, function(b) {
 a.builds = b.by("metadata.name"), Logger.log("builds (subscribe)", a.builds);
 }));
-var j, n = function() {
+var j, o = function() {
 var c = a.debugPod;
 j && (f.unwatch(j), j = null), $(window).off("beforeunload.debugPod"), c && (f["delete"]("pods", c.metadata.name, h, {
 gracePeriodSeconds:0
@@ -2897,7 +2924,7 @@ return _.get(a, [ "imagesByDockerReference", g.image ]);
 },
 backdrop:"static"
 });
-i.result.then(n);
+i.result.then(o);
 }, function(d) {
 a.alerts["debug-container-error"] = {
 type:"error",
@@ -2914,7 +2941,7 @@ return a && a.forEach(function(a) {
 a.state && a.state.running && b++;
 }), b;
 }, a.$on("$destroy", function() {
-f.unwatchAll(k), n();
+f.unwatchAll(k), o();
 });
 }));
 } ]), angular.module("openshiftConsole").controller("OverviewController", [ "$filter", "$routeParams", "$scope", "AlertMessageService", "BuildsService", "DataService", "DeploymentsService", "Logger", "PodsService", "ProjectsService", "RoutesService", "ServicesService", "Navigate", "MetricsService", function(a, b, c, d, e, f, g, h, i, j, k, l, m, n) {
