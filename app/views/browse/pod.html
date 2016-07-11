@@ -124,19 +124,61 @@
                     ng-init="containers = pod.status.containerStatuses"
                     ng-if="containersRunning(pod.status.containerStatuses) > 0">
                     <uib-tab-heading>Terminal</uib-tab-heading>
-                    <div>
+
+                    <div class="mar-bottom-md">
                       <span class="pficon pficon-info" aria-hidden="true"></span>
-                      When you navigate away from this pod, any processes running
-                      in these terminals will quit.
+                      When you navigate away from this pod any open terminal connections will be closed.
+                      This will kill any foreground processes you started from the terminal.
                     </div>
-                    <div class="pod-container-terminal"
-                      ng-repeat="container in containers | orderBy:'name' track by container.name"
-                      ng-if="container.state.running">
-                      <h3 ng-if="containers.length > 1">{{container.name}}</h3>
-                      <kubernetes-container-terminal pod="pod" container="container.name"
-                        prevent="!terminalTabWasSelected">
-                      </kubernetes-container-terminal>
+
+                    <div class="mar-bottom-lg">
+                      <div class="pad-left-none col-xs-4 col-lg-3">
+                        <ui-select
+                          ng-model="selected"
+                          on-select="onTerminalSelectChange(selected)"
+                          class="mar-left-none pad-left-none pad-right-none"
+                          style="width: 350px;"> <!-- UI select bug https://github.com/angular-ui/ui-select/issues/1678 -->
+                         <ui-select-match
+                            class="truncate"
+                            placeholder="Container Name">
+                              <span class="pad-left-md">
+                                {{$select.selected.value.name}}
+                              </span>
+                          </ui-select-match>
+                          <ui-select-choices
+                            repeat="(key, term) in containerTerminals | filter: $select.search">
+                            <div row>
+                              <span ng-bind-html="term.value.name | highlight: $select.search">
+                              </span>
+                              <span flex></span>
+                              <span
+                                ng-show="term.value.isUsed"
+                                ng-class="{'text-muted' : (term.value.status === 'disconnected')}">
+                                  ({{term.value.status}})
+                              </span>
+                              <span ng-show="!term.value.isUsed" class="text-muted">
+                                (not in use)
+                              </span>
+                            </div>
+                          </ui-select-choices>
+                        </ui-select>
+                      </div>
+
+                      <br><br>
+
+                      <div ng-repeat="term in containerTerminals">
+                        <kubernetes-container-terminal
+                          prevent="!terminalTabWasSelected"
+                          ng-if="term.isUsed"
+                          ng-show="term.isActive"
+                          pod="pod"
+                          container="term.name"
+                          status="term.status"
+                          >
+                        </kubernetes-container-terminal>
+                      </div>
                     </div>
+
     	            </uib-tab>
 
                   <uib-tab active="selectedTab.events">

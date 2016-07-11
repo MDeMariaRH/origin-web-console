@@ -87,6 +87,49 @@ angular.module('openshiftConsole')
       }
     };
 
+    /**
+     *  Will set the newTerm's isActive/isUsed to true, while deactivating the old's
+     */
+    $scope.onTerminalSelectChange = function(newTerm) {
+      // Deactivate all terminals
+      _.each($scope.containerTerminals, function(term) {
+        term.isActive = false;
+      });
+
+      newTerm.value.isActive = true;
+      newTerm.value.isUsed = true;
+    };
+
+    $scope.tabSelect = function() {
+      $scope.terminalTabWasSelected = true;
+    };
+
+    var makeTerminals = function(containerStatuses, existingTerms) {
+      existingTerms = existingTerms || {};
+
+      var firstRun = !!existingTerms;
+
+      _.each(containerStatuses, function(status, i) {
+        if(!existingTerms[status.name]) {
+          existingTerms[status.name] = {
+            name: status.name,
+            // on first run, if this is the first container, set it active
+            isActive: (firstRun && (i === 0)),
+            isUsed: (firstRun && (i === 0))
+          };
+        }
+      });
+
+      var defaultSelected = {
+        key: _.findKey($scope.containerTerminals, { 'isActive': true }),
+        value: _.find($scope.containerTerminals, { 'isActive': true })
+      };
+
+      $scope.selected = defaultSelected;
+
+      return existingTerms;
+    };
+
     ProjectsService
       .get($routeParams.project)
       .then(_.spread(function(project, context) {
@@ -105,6 +148,7 @@ angular.module('openshiftConsole')
             var pods = {};
             pods[pod.metadata.name] = pod;
             ImageStreamResolver.fetchReferencedImageStreamImages(pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, context);
+            $scope.containerTerminals = makeTerminals(pod.status.containerStatuses);
 
             // If we found the item successfully, watch for changes on it
             watches.push(DataService.watchObject("pods", $routeParams.pod, context, function(pod, action) {
@@ -117,6 +161,8 @@ angular.module('openshiftConsole')
               $scope.pod = pod;
               setLogVars(pod);
               setContainerVars();
+
+              $scope.containerTerminals = makeTerminals($scope.pod.status.containerStatuses, $scope.containerTerminals);
             }));
           },
           // failure
