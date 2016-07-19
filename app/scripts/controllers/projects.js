@@ -16,6 +16,38 @@ angular.module('openshiftConsole')
     $scope.showGetStarted = false;
     $scope.canCreate = undefined;
 
+    var sortProjects = function() {
+      var sortID = _.get($scope, 'sortConfig.currentField.id', 'metadata.name');
+      var adjustedSortOrder = $scope.sortConfig.isAscending;
+
+      if (sortID === 'metadata.creationTimestamp') {
+        adjustedSortOrder = !adjustedSortOrder;
+      }
+
+      $scope.projects = _.sortByOrder($scope.projects, function(project) {
+        return _.get(project, sortID).toLowerCase();
+      }, [adjustedSortOrder ? 'asc' : 'desc']);
+    };
+
+    // Set up the sort configuration for `pf-sort`.
+    $scope.sortConfig = {
+      fields: [{
+        id: 'metadata.name',
+        title: 'Name',
+        sortType: 'alpha'
+      }, {
+        id: 'metadata.annotations["openshift.io/display-name"]',
+        title: 'Display Name',
+        sortType: 'alpha'
+      }, {
+        id: 'metadata.creationTimestamp',
+        title: 'Age',
+        sortType: 'numeric'
+      }],
+      isAscending: true,
+      onSortChange: sortProjects
+    };
+
     AlertMessageService.getAlerts().forEach(function(alert) {
       $scope.alerts[alert.name] = alert.data;
     });
@@ -23,7 +55,7 @@ angular.module('openshiftConsole')
 
     AuthService.withUser().then(function() {
       watches.push(DataService.watch("projects", $scope, function(projects) {
-        $scope.projects = projects.by("metadata.name");
+        $scope.projects = _.sortByOrder(projects.by("metadata.name"), ['metadata.name'], ['asc']);
         $scope.showGetStarted = hashSizeFilter($scope.projects) === 0;
       }));
     });

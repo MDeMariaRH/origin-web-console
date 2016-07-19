@@ -3049,11 +3049,34 @@ bytesToKiB:b
 };
 }), angular.module("openshiftConsole").controller("ProjectsController", [ "$scope", "$route", "$timeout", "$filter", "$location", "DataService", "AuthService", "AlertMessageService", "Logger", "hashSizeFilter", function(a, b, c, d, e, f, g, h, i, j) {
 var k = [];
-a.projects = {}, a.alerts = a.alerts || {}, a.showGetStarted = !1, a.canCreate = void 0, h.getAlerts().forEach(function(b) {
+a.projects = {}, a.alerts = a.alerts || {}, a.showGetStarted = !1, a.canCreate = void 0;
+var l = function() {
+var b = _.get(a, "sortConfig.currentField.id", "metadata.name"), c = a.sortConfig.isAscending;
+"metadata.creationTimestamp" === b && (c = !c), a.projects = _.sortByOrder(a.projects, function(a) {
+return _.get(a, b).toLowerCase();
+}, [ c ? "asc" :"desc" ]);
+};
+a.sortConfig = {
+fields:[ {
+id:"metadata.name",
+title:"Name",
+sortType:"alpha"
+}, {
+id:'metadata.annotations["openshift.io/display-name"]',
+title:"Display Name",
+sortType:"alpha"
+}, {
+id:"metadata.creationTimestamp",
+title:"Age",
+sortType:"numeric"
+} ],
+isAscending:!0,
+onSortChange:l
+}, h.getAlerts().forEach(function(b) {
 a.alerts[b.name] = b.data;
 }), h.clearAlerts(), g.withUser().then(function() {
 k.push(f.watch("projects", a, function(b) {
-a.projects = b.by("metadata.name"), a.showGetStarted = 0 === j(a.projects);
+a.projects = _.sortByOrder(b.by("metadata.name"), [ "metadata.name" ], [ "asc" ]), a.showGetStarted = 0 === j(a.projects);
 }));
 }), f.get("projectrequests", null, a, {
 errorNotification:!1
@@ -10461,7 +10484,15 @@ if (!b || !c) return null;
 var d, e = a(b.command), f = a(b.args);
 return e && f ? e + " " + f :e ? e :(d = a(_.get(c, "dockerImageMetadata.Config.Entrypoint") || [ "/bin/sh", "-c" ]), f ? d + " " + f :(e = a(_.get(c, "dockerImageMetadata.Config.Cmd")), e ? d + " " + e :null));
 };
-}), angular.module("openshiftConsole").filter("underscore", function() {
+}), angular.module("openshiftConsole").filter("findProject", [ "annotationFilter", function(a) {
+return function(b, c) {
+if (!c) return b;
+var d = c.toLowerCase();
+return _.filter(b, function(b) {
+return b.metadata.name.toLowerCase().includes(d) || _.includes(a(b, "displayName").toLowerCase(), d) || _.includes(a(b, "description").toLowerCase(), d) || _.includes(moment(b.metadata.creationTimestamp).from(moment()).toLowerCase(), d);
+});
+};
+} ]), angular.module("openshiftConsole").filter("underscore", function() {
 return function(a) {
 return a.replace(/\./g, "_");
 };
