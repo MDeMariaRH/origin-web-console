@@ -8488,14 +8488,14 @@ angular.module('openshiftConsoleTemplates', []).run(['$templateCache', function(
     "<div ng-if=\"(projects | hashSize) === 0\" class=\"text-muted\">Loading...</div>\n" +
     "<div ng-if=\"(projects | hashSize) !== 0\" class=\"gutter-top pad-top-none\">\n" +
     "<div class=\"project-background mar-bottom-xl\">\n" +
-    "<div class=\"pad-top-lg pad-left-xl pad-right-xl\">\n" +
-    "<span class=\"h1\">Projects</span>\n" +
+    "<div class=\"pad-top-xl pad-left-xl pad-right-xl\">\n" +
+    "<h1>Projects</h1>\n" +
     "<a ng-if=\"canCreate\" href=\"create-project\" class=\"visible-xs btn btn-md btn-primary pull-right\">\n" +
     "<span>New project</span>\n" +
     "</a>\n" +
     "</div>\n" +
-    "<div row cross-axis=\"center\" class=\"project-bar pad-lg table-toolbar form-inline\">\n" +
-    "<input class=\"projectSearch\" placeholder=\"Search projects\" ng-model=\"filterStr\">\n" +
+    "<div row cross-axis=\"center\" class=\"project-bar pad-top-lg pad-right-xl pad-bottom-lg pad-left-xl table-toolbar form-inline\">\n" +
+    "<input class=\"form-control\" placeholder=\"Search projects\" ng-model=\"filterStr\">\n" +
     "<span class=\"mar-left-sm mar-right-sm\">\n" +
     "<span class=\"hidden-xs vertical-divider\"></span>\n" +
     "</span>\n" +
@@ -8516,8 +8516,8 @@ angular.module('openshiftConsoleTemplates', []).run(['$templateCache', function(
     "<div ng-if=\"alerts\" class=\"mar-left-xl mar-right-xl\">\n" +
     "<alerts alerts=\"alerts\"></alerts>\n" +
     "</div>\n" +
-    "<div ng-repeat=\"project in projects | findProject:filterStr\" class=\"list-group list-view-pf tile-click project-tile-border\">\n" +
-    "<div class=\"list-group-item project-info project-tile\">\n" +
+    "<div class=\"list-group list-view-pf projects-list tile-click\">\n" +
+    "<div ng-repeat=\"project in projects | findProject:filterStr\" class=\"list-group-item project-info mar-left-xl mar-right-xl\">\n" +
     "<div row class=\"list-view-pf-actions project-actions\" ng-if=\"project.status.phase == 'Active'\">\n" +
     "<span class=\"fa-lg project-action-item\">\n" +
     "<a ng-href=\"project/{{project.metadata.name}}/edit\" class=\"action-button\">\n" +
@@ -8531,8 +8531,7 @@ angular.module('openshiftConsoleTemplates', []).run(['$templateCache', function(
     "</span>\n" +
     "</div>\n" +
     "<div class=\"list-view-pf-main-info\">\n" +
-    "<div class=\"list-view-pf-body\">\n" +
-    "<div class=\"list-view-pf-description project-info project-names\">\n" +
+    "<div class=\"list-view-pf-description project-names\">\n" +
     "<div class=\"list-group-item-heading project-name-item\">\n" +
     "<div class=\"project-summary\">\n" +
     "<div class=\"h1\">\n" +
@@ -8544,21 +8543,15 @@ angular.module('openshiftConsoleTemplates', []).run(['$templateCache', function(
     "<p>{{project.metadata.name}}</p>\n" +
     "</div>\n" +
     "</div>\n" +
-    "</div>\n" +
-    "<div row mobile=\"column\" class=\"list-view-pf-additional-info project-info\">\n" +
-    "<span flex class=\"hidden-xs hidden-sm\"></span>\n" +
-    "<span flex class=\"list-group-item-text project-description muted word-break\" ng-if=\"project | description\">\n" +
+    "<div flex row mobile=\"column\" class=\"list-view-pf-additional-info project-additional-info\">\n" +
+    "<span flex class=\"list-group-item-text project-description\">\n" +
     "<truncate-long-text content=\"project | description\" limit=\"200\" use-word-boundary=\"true\"></truncate-long-text>\n" +
     "</span>\n" +
-    "<span mobile=\"flex\">\n" +
-    "<span class=\"list-view-pf-additional-info-item project-age\">\n" +
-    "<div row class=\"h1\">\n" +
-    "<span flex></span>\n" +
+    "<span flex column class=\"list-view-pf-additional-info-item project-age\">\n" +
+    "<div class=\"h1\">\n" +
     "<relative-timestamp timestamp=\"project.metadata.creationTimestamp\"></relative-timestamp>\n" +
-    "<span flex></span>\n" +
     "</div>\n" +
     "<div class=\"h2\">Created</div>\n" +
-    "</span>\n" +
     "</span>\n" +
     "</div>\n" +
     "</div>\n" +

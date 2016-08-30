@@ -12,15 +12,15 @@
             <div ng-if="(projects | hashSize) === 0" class="text-muted">Loading...</div>
             <div ng-if="(projects | hashSize) !== 0" class="gutter-top pad-top-none">
               <div class="project-background mar-bottom-xl">
-                <div class="pad-top-lg pad-left-xl pad-right-xl">
-                  <span class="h1">Projects</span>
+                <div class="pad-top-xl pad-left-xl pad-right-xl">
+                  <h1>Projects</h1>
                   <a ng-if="canCreate" href="create-project" class="visible-xs btn btn-md btn-primary pull-right">
                     <span>New project</span>
                   </a>
                 </div>
 
-                <div row cross-axis="center" class="project-bar pad-lg table-toolbar form-inline">
-                  <input class="projectSearch" placeholder="Search projects" ng-model="filterStr">
+                <div row cross-axis="center" class="project-bar pad-top-lg pad-right-xl pad-bottom-lg pad-left-xl table-toolbar form-inline">
+                  <input class="form-control" placeholder="Search projects" ng-model="filterStr">
 
                   <span class="mar-left-sm mar-right-sm">
                     <span class="hidden-xs vertical-divider"></span>
@@ -47,9 +47,9 @@
                 <alerts alerts="alerts"></alerts>
               </div>
 
-              <div ng-repeat="project in projects | findProject:filterStr"
-                   class="list-group list-view-pf tile-click project-tile-border">
-                <div class="list-group-item project-info project-tile">
+              <div class="list-group list-view-pf projects-list tile-click">
+                <div ng-repeat="project in projects | findProject:filterStr"
+                     class="list-group-item project-info mar-left-xl mar-right-xl">
                   <div row class="list-view-pf-actions project-actions"
                        ng-if="project.status.phase == 'Active'">
                    <span class="fa-lg project-action-item">
@@ -74,39 +74,32 @@
                   </div>
 
                   <div class="list-view-pf-main-info">
-                    <div class="list-view-pf-body">
-                      <div class="list-view-pf-description project-info project-names">
-                        <div class="list-group-item-heading project-name-item">
-                          <div class="project-summary">
-                            <div class="h1">
-                              <a class="tile-target" href="project/{{project.metadata.name}}">{{project.metadata.annotations["openshift.io/display-name"]}}</a> <!-- {{(project | uniqueDisplayName : projects)}} -->
-                              <span ng-if="project.status.phase != 'Active'"
-                                    data-toggle="tooltip"
-                                    title="This project has been marked for deletion."
-                                    class="pficon pficon-warning-triangle-o"
-                                    style="cursor: help; vertical-align: top; margin-left: 5px;"></span>
-                            </div>
+                    <div class="list-view-pf-description project-names">
+                      <div class="list-group-item-heading project-name-item">
+                        <div class="project-summary">
+                          <div class="h1">
+                            <a class="tile-target" href="project/{{project.metadata.name}}">{{project.metadata.annotations["openshift.io/display-name"]}}</a> <!-- {{(project | uniqueDisplayName : projects)}} -->
+                            <span ng-if="project.status.phase != 'Active'"
+                                  data-toggle="tooltip"
+                                  title="This project has been marked for deletion."
+                                  class="pficon pficon-warning-triangle-o"
+                                  style="cursor: help; vertical-align: top; margin-left: 5px;"></span>
                           </div>
-                          <div class="project-name-item">
-                            <p>{{project.metadata.name}}</p>
-                          </div>
+                        </div>
+                        <div class="project-name-item">
+                          <p>{{project.metadata.name}}</p>
                         </div>
                       </div>
 
-                      <div row mobile="column" class="list-view-pf-additional-info project-info">
-                        <span flex class="hidden-xs hidden-sm"></span>
-                        <span flex class="list-group-item-text project-description muted word-break" ng-if="project | description">
+                      <div flex row mobile="column" class="list-view-pf-additional-info project-additional-info">
+                        <span flex class="list-group-item-text project-description">
                           <truncate-long-text content="project | description" limit="200" use-word-boundary="true"></truncate-long-text>
                         </span>
-                        <span mobile="flex">
-                          <span class="list-view-pf-additional-info-item project-age">
-                            <div row class="h1">
-                              <span flex></span>
-                              <relative-timestamp timestamp="project.metadata.creationTimestamp"></relative-timestamp>
-                              <span flex></span>
-                            </div>
-                            <div class="h2">Created</div>
-                          </span>
+                        <span flex column class="list-view-pf-additional-info-item project-age">
+                          <div class="h1">
+                            <relative-timestamp timestamp="project.metadata.creationTimestamp"></relative-timestamp>
+                          </div>
+                          <div class="h2">Created</div>
                         </span>
                       </div>
                     </div>
