@@ -468,6 +468,27 @@
                       </div>
                     </div>
                   </div>
+
+
+                  <div class="row">
+                    <div class="col-lg-6">
+                      <div ng-if="!(updatedBuildConfig | isJenkinsPipelineStrategy)" class="section">
+                        <h3>Build Hooks<span class="help action-inline">
+                          <a href>
+                          <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="TODO"></i>
+                          </a>
+                        </span></h3>
+
+                        <div>
+                          <edit-command
+                            args="buildConfig.spec.postCommit"
+                            isRequired="false">
+                          </edit-command>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div class="buttons gutter-top-bottom">
                     <button
                       type="submit"

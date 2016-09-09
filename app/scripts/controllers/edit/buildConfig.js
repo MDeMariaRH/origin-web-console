@@ -150,7 +150,7 @@ angular.module('openshiftConsole')
               }
 
               if (imageOptions.type === "ImageStreamImage") {
-                isimage = (imageData.namespace || buildConfig.metadata.namespace) + "/" + imageData.name;               
+                isimage = (imageData.namespace || buildConfig.metadata.namespace) + "/" + imageData.name;
               } else {
                 isimage = "";
               }
