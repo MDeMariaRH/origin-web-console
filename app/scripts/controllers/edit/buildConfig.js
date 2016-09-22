@@ -405,6 +405,18 @@ angular.module('openshiftConsole')
 
       // Update envVars
       buildStrategy($scope.updatedBuildConfig).env = keyValueEditorUtils.compactEntries($scope.envVars);
+      console.log('Update envVars');
+      console.log('KeyVals', keyValueEditorUtils.compactEntries($scope.envVars));
+      console.log('updatedBuildConfig', $scope.updatedBuildConfig);
+      console.log('Build Strategy Env', buildStrategy($scope.updatedBuildConfig).env);
+
+
+      //What is buildStrategy? .env? Do I need something for BCs? What format is it expecting because I won't be using the keyVal Compactor.
+      // Where does updatedBuildConfig come into play?
+
+      // TODO how do I get at the Build Hook's args? Comes up undefined
+      console.log('Build Hook Args', $scope.args);
+      $scope.updatedBuildConfig.spec.postCommit = 'NEW ARGUMENT';
 
       // Update triggers
       $scope.updatedBuildConfig.spec.triggers = updateTriggers();
