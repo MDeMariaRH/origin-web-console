@@ -6954,6 +6954,56 @@ angular.module('openshiftConsoleTemplates', []).run(['$templateCache', function(
     "</div>\n" +
     "</div>\n" +
     "</div>\n" +
+    "<div class=\"row\">\n" +
+    "<div class=\"col-lg-6\">\n" +
+    "<div ng-if=\"!(updatedBuildConfig | isJenkinsPipelineStrategy)\" class=\"section\">\n" +
+    "<h3>Build Hooks\n" +
+    "<span class=\"help action-inline\">\n" +
+    "<a href>\n" +
+    "<i class=\"pficon pficon-help\" data-toggle=\"tooltip\" aria-hidden=\"true\" data-original-title=\"Edit this build's build hooks\"></i>\n" +
+    "</a>\n" +
+    "</span>\n" +
+    "</h3>\n" +
+    "<div ng-if=\"disablePostCommitEditor\" class=\"alert alert-warning alert-dismissable\">\n" +
+    "<span class=\"pficon pficon-warning-triangle-o\"></span>\n" +
+    "<strong>This build has more than one type of Build Hook in the Post Commit.</strong> You can use the YAML editor to make further changes to this Build Hook Configuration.\n" +
+    "</div>\n" +
+    "<div>\n" +
+    "<div class=\"form-group\">\n" +
+    "<label class=\"sr-only\">Post commit type</label>\n" +
+    "<ui-select required ng-model=\"selectedPostCommitType\" ng-init=\"selectedPostCommitType = 'Command'\" on-select=\"changeSelectedPostCommitType($select.selected)\" search-enabled=\"false\">\n" +
+    "<ui-select-match>{{$select.selected | sentenceCase}}</ui-select-match>\n" +
+    "<ui-select-choices repeat=\"type in postCommitTypes\">\n" +
+    "{{type | sentenceCase}}\n" +
+    "</ui-select-choices>\n" +
+    "PC TYPE: {{selectedPostCommitType}}\n" +
+    "</ui-select>\n" +
+    "</div>\n" +
+    "\n" +
+    "\n" +
+    "<fieldset ng-disabled=\"disablePostCommitEditor\">\n" +
+    "<div ng-switch=\"selectedPostCommitType\">\n" +
+    "<div ng-switch-when=\"command\">COMMAND\n" +
+    "<edit-command args=\"postCommitCommands\" isrequired=\"false\">\n" +
+    "</edit-command>\n" +
+    "</div>\n" +
+    "<div ng-switch-when=\"args\">ARGS\n" +
+    "<edit-command args=\"postCommitArgs\" isrequired=\"false\">\n" +
+    "</edit-command>\n" +
+    "</div>\n" +
+    "<div ng-switch-when=\"scripts\">SCRIPTS\n" +
+    "\n" +
+    "<div>\n" +
+    "<edit-command args=\"postCommitScripts\" isrequired=\"false\">\n" +
+    "</edit-command>\n" +
+    "</div>\n" +
+    "</div>\n" +
+    "</div>\n" +
+    "</fieldset>\n" +
+    "</div>\n" +
+    "</div>\n" +
+    "</div>\n" +
+    "</div>\n" +
     "<div class=\"buttons gutter-top-bottom\">\n" +
     "<button type=\"submit\" class=\"btn btn-primary btn-lg\" ng-disabled=\"form.$invalid || form.$pristine || disableInputs\">\n" +
     "Save\n" +

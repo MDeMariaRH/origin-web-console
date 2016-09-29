@@ -469,23 +469,68 @@
                     </div>
                   </div>
 
-
                   <div class="row">
                     <div class="col-lg-6">
                       <div ng-if="!(updatedBuildConfig | isJenkinsPipelineStrategy)" class="section">
                         <h3>Build Hooks
                           <span class="help action-inline">
                             <a href>
-                              <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="TODO"></i>
+                              <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="Edit this build's build hooks"></i>
                             </a>
                           </span>
                         </h3>
 
+                        <div
+                          ng-if="disablePostCommitEditor"
+                          class="alert alert-warning alert-dismissable">
+                          <span class="pficon pficon-warning-triangle-o"></span>
+                          <strong>This build has more than one type of Build Hook in the Post Commit.</strong> You can use the YAML editor to make further changes to this Build Hook Configuration.
+                        </div>
+
                         <div>
-                          <edit-command
-                            args="buildConfig.spec.postCommit"
-                            isRequired="false">
-                          </edit-command>
+                          <div class="form-group">
+                            <label class="sr-only">Post commit type</label>
+                            <ui-select
+                              required
+                              ng-model="selectedPostCommitType"
+                              ng-init="selectedPostCommitType = 'Command'"
+                              on-select="changeSelectedPostCommitType($select.selected)"
+                              search-enabled="false">
+                              <ui-select-match>{{$select.selected | sentenceCase}}</ui-select-match>
+                              <ui-select-choices repeat="type in postCommitTypes">
+                                {{type | sentenceCase}}
+                              </ui-select-choices>
+                              PC TYPE: {{selectedPostCommitType}}
+                            </ui-select>
+                          </div>
+
+                          <!-- TODO Make ctrlr scope vars that filter form buildConfig.spec.postCommit into pcCommands & pcArgs -->
+                          <!---->
+                          <fieldset ng-disabled="disablePostCommitEditor">
+                            <div ng-switch="selectedPostCommitType">
+                                <div ng-switch-when="command">COMMAND
+                                  <edit-command
+                                    args="postCommitCommands"
+                                    isRequired="false">
+                                  </edit-command>
+                                </div>
+                              <div ng-switch-when="args">ARGS
+                                <edit-command
+                                  args="postCommitArgs"
+                                  isRequired="false">
+                                </edit-command>
+                              </div>
+                              <div ng-switch-when="scripts">SCRIPTS
+                                <!-- TODO Find multiline editor -->
+                                <div>
+                                  <edit-command
+                                    args="postCommitScripts"
+                                    isRequired="false">
+                                  </edit-command>
+                                </div>
+                              </div>
+                            </div>
+                          </fieldset>
                         </div>
                       </div>
                     </div>

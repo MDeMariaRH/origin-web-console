@@ -5010,8 +5010,10 @@ i.list("limitranges", l, function(b) {
 e.limitRanges = b.by("metadata.name"), 0 !== a("hashSize")(b) && e.$watch("containers", n, !0);
 });
 }));
-} ]), angular.module("openshiftConsole").controller("EditBuildConfigController", [ "$scope", "$routeParams", "DataService", "ProjectsService", "$filter", "ApplicationGenerator", "Navigate", "$location", "AlertMessageService", "SOURCE_URL_PATTERN", "keyValueEditorUtils", function(a, b, c, d, e, f, g, h, i, j, k) {
-a.projectName = b.project, a.buildConfig = null, a.alerts = {}, a.emptyMessage = "Loading...", a.sourceURLPattern = j, a.options = {}, a.jenkinsfileOptions = {
+} ]), angular.module("openshiftConsole").controller("EditBuildConfigController", [ "$scope", "$routeParams", "DataService", "ProjectsService", "$filter", "ApplicationGenerator", "Navigate", "$location", "AlertMessageService", "SOURCE_URL_PATTERN", "keyValueEditorUtils", "$interval", function(a, b, c, d, e, f, g, h, i, j, k, l) {
+l(function() {
+console.log("BC edit", a.postCommitCommands);
+}, 1300), a.projectName = b.project, a.buildConfig = null, a.alerts = {}, a.emptyMessage = "Loading...", a.sourceURLPattern = j, a.options = {}, a.jenkinsfileOptions = {
 type:"path"
 }, a.selectTypes = {
 ImageStreamTag:"Image Stream Tag",
@@ -5057,15 +5059,17 @@ genericWebhooks:[],
 imageChangeTriggers:[],
 builderImageChangeTrigger:{},
 configChangeTrigger:{}
-}, a.runPolicyTypes = [ "Serial", "Parallel", "SerialLatestOnly" ], i.getAlerts().forEach(function(b) {
+}, a.runPolicyTypes = [ "Serial", "Parallel", "SerialLatestOnly" ], a.postCommitTypes = [ "command", "args", "script" ], a.disablePostCommitEditor = !1, a.selectedPostCommitType = a.postCommitTypes[0], a.changeSelectedPostCommitType = function(b) {
+console.log("--- Old PC Type", a.selectedPostCommitType), console.log("Passed PC type", b), a.selectedPostCommitType = b, console.log("+++ new PC Type", a.selectedPostCommitType);
+}, i.getAlerts().forEach(function(b) {
 a.alerts[b.name] = b.data;
 }), i.clearAlerts();
-var l = [], m = e("buildStrategy");
+var m = [], n = e("buildStrategy");
 d.get(b.project).then(_.spread(function(d, f) {
 a.project = d, a.breadcrumbs[0].title = e("displayName")(d), c.get("buildconfigs", b.buildconfig, f).then(function(d) {
-a.buildConfig = d, a.updatedBuildConfig = angular.copy(a.buildConfig), a.buildStrategy = m(a.updatedBuildConfig), a.strategyType = a.buildConfig.spec.strategy.type, a.envVars = a.buildStrategy.env || [], _.each(a.envVars, function(a) {
+a.buildConfig = d, console.log("CURRENT BC PC", a.buildConfig.spec.postCommit), a.disablePostCommitEditor = Object.keys(d.spec.postCommit).length > 1, a.postCommitArgs = {}, a.postCommitCommands = {}, a.postCommitScripts = {}, a.postCommitCommands = a.buildConfig.spec.postCommit.command || [], a.postCommitArgs.args = a.buildConfig.spec.postCommit.args || [], a.postCommitScripts.script = a.buildConfig.spec.postCommit.script || "", a.updatedBuildConfig = angular.copy(a.buildConfig), a.buildStrategy = n(a.updatedBuildConfig), a.strategyType = a.buildConfig.spec.strategy.type, a.envVars = a.buildStrategy.env || [], _.each(a.envVars, function(a) {
 e("altTextForValueFrom")(a);
-}), a.triggers = n(a.triggers, a.buildConfig.spec.triggers), a.sources = s(a.sources, a.buildConfig.spec.source), _.has(d, "spec.strategy.jenkinsPipelineStrategy.jenkinsfile") && (a.jenkinsfileOptions.type = "inline");
+}), a.triggers = o(a.triggers, a.buildConfig.spec.triggers), a.sources = t(a.sources, a.buildConfig.spec.source), _.has(d, "spec.strategy.jenkinsPipelineStrategy.jenkinsfile") && (a.jenkinsfileOptions.type = "inline");
 var g = function(a, b) {
 a.type = b && b.kind ? b.kind :"None";
 var c = {}, e = "", f = "";
@@ -5090,7 +5094,7 @@ value:a.destinationDir
 };
 })) :(a.imageSourceFromObjects = [], a.sourceImages.forEach(function(b) {
 a.imageSourceFromObjects.push(b.from);
-}))), a.options.forcePull = !!a.buildStrategy.forcePull, a.sources.binary && (a.options.binaryAsFile = a.buildConfig.spec.source.binary.asFile ? a.buildConfig.spec.source.binary.asFile :""), "Docker" === a.strategyType && (a.options.noCache = !!a.buildConfig.spec.strategy.dockerStrategy.noCache, a.buildFromTypes.push("None")), l.push(c.watchObject("buildconfigs", b.buildconfig, f, function(b, c) {
+}))), a.options.forcePull = !!a.buildStrategy.forcePull, a.sources.binary && (a.options.binaryAsFile = a.buildConfig.spec.source.binary.asFile ? a.buildConfig.spec.source.binary.asFile :""), "Docker" === a.strategyType && (a.options.noCache = !!a.buildConfig.spec.strategy.dockerStrategy.noCache, a.buildFromTypes.push("None")), m.push(c.watchObject("buildconfigs", b.buildconfig, f, function(b, c) {
 "MODIFIED" === c && (a.alerts.background_update = {
 type:"warning",
 message:"This build configuration has changed since you started editing it. You'll need to copy any changes you've made and edit again."
@@ -5107,12 +5111,12 @@ details:"Reason: " + e("getErrorDetails")(b)
 };
 });
 }));
-var n = function(b, c) {
+var o = function(b, c) {
 function d(b, c) {
 var d = e("imageObjectRef")(b, a.projectName), f = e("imageObjectRef")(c, a.projectName);
 return d === f;
 }
-var f = m(a.buildConfig).from;
+var f = n(a.buildConfig).from;
 return c.forEach(function(a) {
 switch (a.type) {
 case "Generic":
@@ -5162,16 +5166,16 @@ a.aceLoaded = function(a) {
 var b = a.getSession();
 b.setOption("tabSize", 2), b.setOption("useSoftTabs", !0), a.$blockScrolling = 1 / 0;
 };
-var o = function(a) {
+var p = function(a) {
 return _.map(k.compactEntries(a), function(a) {
 return {
 sourcePath:a.name,
 destinationDir:a.value
 };
 });
-}, p = function() {
+}, q = function() {
 a.sources.binary && ("" !== a.options.binaryAsFile ? a.updatedBuildConfig.spec.source.binary.asFile = a.options.binaryAsFile :a.updatedBuildConfig.spec.source.binary = {});
-}, q = function(b) {
+}, r = function(b) {
 var c = {};
 switch (b.type) {
 case "ImageStreamTag":
@@ -5196,42 +5200,26 @@ name:_.last(d)
 }, c.namespace = 1 !== d.length ? d[0] :a.buildConfig.metadata.namespace;
 }
 return c;
-}, r = function() {
+}, s = function() {
 var b = [].concat(a.triggers.githubWebhooks, a.triggers.genericWebhooks, a.triggers.imageChangeTriggers, a.triggers.builderImageChangeTrigger, a.triggers.configChangeTrigger);
 return b = _.filter(b, function(a) {
 return _.has(a, "disabled") && !a.disabled || a.present;
 }), b = _.map(b, "data");
-}, s = function(a, b) {
+}, t = function(a, b) {
 return "None" === b.type ? a :(a.none = !1, angular.forEach(b, function(b, c) {
 a[c] = !0;
 }), a);
 };
 a.save = function() {
-switch (a.disableInputs = !0, m(a.updatedBuildConfig).forcePull = a.options.forcePull, a.strategyType) {
+switch (a.disableInputs = !0, n(a.updatedBuildConfig).forcePull = a.options.forcePull, a.strategyType) {
 case "Docker":
-m(a.updatedBuildConfig).noCache = a.options.noCache;
+n(a.updatedBuildConfig).noCache = a.options.noCache;
 break;
 
 case "JenkinsPipeline":
 "path" === a.jenkinsfileOptions.type ? delete a.updatedBuildConfig.spec.strategy.jenkinsPipelineStrategy.jenkinsfile :delete a.updatedBuildConfig.spec.strategy.jenkinsPipelineStrategy.jenkinsfilePath;
 }
-p(), a.sources.images && !_.isEmpty(a.sourceImages) && (a.updatedBuildConfig.spec.source.images[0].paths = o(a.imageSourcePaths), a.updatedBuildConfig.spec.source.images[0].from = q(a.imageOptions.fromSource)), "None" === a.imageOptions.from.type ? delete m(a.updatedBuildConfig).from :m(a.updatedBuildConfig).from = q(a.imageOptions.from), "None" === a.imageOptions.to.type ? delete a.updatedBuildConfig.spec.output.to :a.updatedBuildConfig.spec.output.to = q(a.imageOptions.to), m(a.updatedBuildConfig).env = k.compactEntries(a.envVars), a.updatedBuildConfig.spec.triggers = r(), c.update("buildconfigs", a.updatedBuildConfig.metadata.name, a.updatedBuildConfig, {
-namespace:a.updatedBuildConfig.metadata.namespace
-}).then(function() {
-i.addAlert({
-name:a.updatedBuildConfig.metadata.name,
-data:{
-type:"success",
-message:"Build Config " + a.updatedBuildConfig.metadata.name + " was successfully updated."
-}
-}), h.path(g.resourceURL(a.updatedBuildConfig, "BuildConfig", a.updatedBuildConfig.metadata.namespace));
-}, function(b) {
-a.disableInputs = !1, a.alerts.save = {
-type:"error",
-message:"An error occurred updating the build " + a.updatedBuildConfig.metadata.name + "Build Config",
-details:e("getErrorDetails")(b)
-};
-});
+q(), a.sources.images && !_.isEmpty(a.sourceImages) && (a.updatedBuildConfig.spec.source.images[0].paths = p(a.imageSourcePaths), a.updatedBuildConfig.spec.source.images[0].from = r(a.imageOptions.fromSource)), "None" === a.imageOptions.from.type ? delete n(a.updatedBuildConfig).from :n(a.updatedBuildConfig).from = r(a.imageOptions.from), "None" === a.imageOptions.to.type ? delete a.updatedBuildConfig.spec.output.to :a.updatedBuildConfig.spec.output.to = r(a.imageOptions.to), n(a.updatedBuildConfig).env = k.compactEntries(a.envVars), console.log("Build Hook Args", "Commands", a.postCommitCommands, "Args", a.postCommitArgs, "Scripts", a.postCommitScripts), a.updatedBuildConfig.spec.postCommit.command = a.postCommitCommands, a.updatedBuildConfig.spec.postCommit.args = a.postCommitArgs.args, a.updatedBuildConfig.spec.postCommit.script = a.postCommitScripts.script, console.log("UPDATED BC PC", a.updatedBuildConfig.spec.postCommit), a.updatedBuildConfig.spec.triggers = s();
 };
 } ]), angular.module("openshiftConsole").controller("EditAutoscalerController", [ "$scope", "$filter", "$routeParams", "$window", "APIService", "BreadcrumbsService", "DataService", "HPAService", "MetricsService", "Navigate", "ProjectsService", "keyValueEditorUtils", function(a, b, c, d, e, f, g, h, i, j, k, l) {
 if (!c.kind || !c.name) return void j.toErrorPage("Kind or name parameter missing.");
@@ -9444,18 +9432,18 @@ multiline:d(a)
 };
 })));
 }, !0), b.$watch("input.args", function(a, d) {
-a !== d && (c = !0, b.args = _.map(b.input.args, function(a) {
+console.log("37", b.input.args), a !== d && (c = !0, b.args = _.map(b.input.args, function(a) {
 return a.value;
 }), b.form.command.$setDirty());
 }, !0), b.addArg = function() {
-b.nextArg && (b.input.args = b.input.args || [], b.input.args.push({
+console.log("50", b.input.args), b.nextArg && (b.input.args = b.input.args || [], b.input.args.push({
 value:b.nextArg,
 multiline:d(b.nextArg)
 }), b.nextArg = "");
 }, b.removeArg = function(a) {
-b.input.args.splice(a, 1), _.isEmpty(b.input.args) && (b.input.args = null);
+console.log("64", b.input.args), b.input.args.splice(a, 1), _.isEmpty(b.input.args) && (b.input.args = null);
 }, b.clear = function() {
-b.input.args = null;
+console.log("73", b.input.args), b.input.args = null;
 };
 }
 };
