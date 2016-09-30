@@ -19,12 +19,7 @@ angular.module('openshiftConsole')
     $location,
     AlertMessageService,
     SOURCE_URL_PATTERN,
-    keyValueEditorUtils,
-    $interval) {
-
-    $interval(function() {
-      console.log('BC edit', $scope.postCommitCommands);
-    }, 1300);
+    keyValueEditorUtils) {
 
     $scope.projectName = $routeParams.project;
     $scope.buildConfig = null;
@@ -129,10 +124,7 @@ angular.module('openshiftConsole')
     $scope.selectedPostCommitType = $scope.postCommitTypes[0];
 
     $scope.changeSelectedPostCommitType = function(newPostCommitType) {
-      console.log('--- Old PC Type', $scope.selectedPostCommitType)
-      console.log('Passed PC type', newPostCommitType);
       $scope.selectedPostCommitType = newPostCommitType;
-      console.log('+++ new PC Type', $scope.selectedPostCommitType);
     };
 
     AlertMessageService.getAlerts().forEach(function(alert) {
@@ -155,18 +147,7 @@ angular.module('openshiftConsole')
           // success
           function(buildConfig) {
             $scope.buildConfig = buildConfig;
-
-            console.log('CURRENT BC PC', $scope.buildConfig.spec.postCommit);
-
             $scope.disablePostCommitEditor = (Object.keys(buildConfig.spec.postCommit).length > 1);
-
-            // TODO if I don't use .command and .args, each value is split into a separate line
-            $scope.postCommitArgs = {};
-            $scope.postCommitCommands = {};
-            $scope.postCommitScripts = {};
-            $scope.postCommitCommands = $scope.buildConfig.spec.postCommit.command || [];
-            $scope.postCommitArgs.args = $scope.buildConfig.spec.postCommit.args || [];
-            $scope.postCommitScripts.script = $scope.buildConfig.spec.postCommit.script || "";
 
             $scope.updatedBuildConfig = angular.copy($scope.buildConfig);
             $scope.buildStrategy = buildStrategy($scope.updatedBuildConfig);
@@ -451,18 +432,12 @@ angular.module('openshiftConsole')
       // Update envVars
       buildStrategy($scope.updatedBuildConfig).env = keyValueEditorUtils.compactEntries($scope.envVars);
 
-      //What is buildStrategy? .env? Do I need something for BCs? What format is it expecting because I won't be using the keyVal Compactor.
-      // Where does updatedBuildConfig come into play?
-
-      console.log('Build Hook Args', 'Commands', $scope.postCommitCommands, 'Args', $scope.postCommitArgs, 'Scripts', $scope.postCommitScripts);
-      $scope.updatedBuildConfig.spec.postCommit.command = $scope.postCommitCommands;
-      $scope.updatedBuildConfig.spec.postCommit.args = $scope.postCommitArgs.args;
-      $scope.updatedBuildConfig.spec.postCommit.script = $scope.postCommitScripts.script;
-      console.log('UPDATED BC PC', $scope.updatedBuildConfig.spec.postCommit);
+      console.log('UPDATED BC PC', $scope.buildConfig.spec.postCommit);
+      $scope.updatedBuildConfig.spec.postCommit = $scope.buildConfig.spec.postCommit;
 
       // Update triggers
       $scope.updatedBuildConfig.spec.triggers = updateTriggers();
-      return
+
       DataService.update("buildconfigs", $scope.updatedBuildConfig.metadata.name, $scope.updatedBuildConfig, {
         namespace: $scope.updatedBuildConfig.metadata.namespace
       }).then(

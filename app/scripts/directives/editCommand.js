@@ -34,7 +34,7 @@ angular.module('openshiftConsole')
         }, true);
 
         scope.$watch('input.args', function(newValue, oldValue) {
-          console.log('37', scope.input.args);
+          console.log('37', scope.args);
           if (newValue === oldValue) {
             return;
           }
@@ -47,7 +47,7 @@ angular.module('openshiftConsole')
         }, true);
 
         scope.addArg = function() {
-          console.log('50', scope.input.args);
+          console.log('50', scope.args);
           if (!scope.nextArg) {
             return;
           }
@@ -61,7 +61,7 @@ angular.module('openshiftConsole')
         };
 
         scope.removeArg = function(index) {
-          console.log('64', scope.input.args);
+          console.log('64', scope.args);
           scope.input.args.splice(index, 1);
           if (_.isEmpty(scope.input.args)) {
             // Needs to be null rather than empty for validation.
@@ -70,7 +70,7 @@ angular.module('openshiftConsole')
         };
 
         scope.clear = function() {
-          console.log('73', scope.input.args);
+          console.log('73', scope.args);
           scope.input.args = null;
         };
       }

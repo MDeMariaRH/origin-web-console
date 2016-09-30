@@ -475,7 +475,7 @@
                         <h3>Build Hooks
                           <span class="help action-inline">
                             <a href>
-                              <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="Edit this build's build hooks"></i>
+                              <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="Build hooks allow behavior to be injected into the build process."></i>
                             </a>
                           </span>
                         </h3>
@@ -508,25 +508,33 @@
                           <!---->
                           <fieldset ng-disabled="disablePostCommitEditor">
                             <div ng-switch="selectedPostCommitType">
-                                <div ng-switch-when="command">COMMAND
+                                <div ng-switch-when="command">
                                   <edit-command
-                                    args="postCommitCommands"
+                                    args="buildConfig.spec.postCommit.command"
                                     isRequired="false">
                                   </edit-command>
                                 </div>
-                              <div ng-switch-when="args">ARGS
+                              <div ng-switch-when="args">
                                 <edit-command
-                                  args="postCommitArgs"
+                                  args="buildConfig.spec.postCommit.args"
                                   isRequired="false">
                                 </edit-command>
                               </div>
-                              <div ng-switch-when="scripts">SCRIPTS
+                              <div ng-switch-when="script">
                                 <!-- TODO Find multiline editor -->
                                 <div>
-                                  <edit-command
-                                    args="postCommitScripts"
-                                    isRequired="false">
-                                  </edit-command>
+                                  <div ui-ace="{
+                                    mode: 'yaml',
+                                    theme: 'eclipse',
+                                    onLoad: aceLoaded,
+                                    rendererOptions: {
+                                      fadeFoldWidgets: true,
+                                      showPrintMargin: false
+                                    }
+                                  }"
+                                  ng-model="buildConfig.spec.postCommit.script"
+                                  class="ace-bordered ace-read-only ace-inline dockerfile-mode mar-top-md">
+                                  </div>
                                 </div>
                               </div>
                             </div>
