@@ -63,17 +63,20 @@ a[c] && a[c].constructor && a[c].constructor === Object ? mergeDeep(a[c], b) :a[
 }
 
 function LabelSelector(a, b) {
-this._conjuncts = {}, this._emptySelectsAll = !!b;
-var c = {
+this._conjuncts = {}, this._emptySelectsAll = !!b, this._OPERATOR_MAP = {
 In:"in",
 NotIn:"not in",
 Exists:"exists",
 DoesNotExist:"does not exist"
-};
-a && (a.matchLabels || a.matchExpressions ? (angular.forEach(a.matchLabels, function(a, b) {
+}, this._REVERSE_OPERATOR_MAP = {
+"in":"In",
+"not in":"NotIn",
+exists:"Exists",
+"does not exist":"DoesNotExist"
+}, a && (a.matchLabels || a.matchExpressions ? (angular.forEach(a.matchLabels, function(a, b) {
 this.addConjunct(b, "in", [ a ]);
 }, this), angular.forEach(a.matchExpressions, function(a) {
-this.addConjunct(a.key, c[a.operator], a.values);
+this.addConjunct(a.key, this._OPERATOR_MAP[a.operator], a.values);
 }, this)) :angular.forEach(a, function(a, b) {
 a || "" === a ? this.addConjunct(b, "in", [ a ]) :this.addConjunct(b, "exists", []);
 }, this));
@@ -38543,6 +38546,19 @@ return !!this._conjuncts[this._getIdForConjunct(a)];
 if (this.isEmpty()) return !1;
 for (var b in this._conjuncts) if (!a.hasConjunct(this._conjuncts[b])) return !1;
 return !0;
+}, LabelSelector.prototype.exportJSON = function() {
+var a = {
+matchExpressions:[]
+};
+for (var b in this._conjuncts) {
+var c = this._conjuncts[b], d = {
+key:c.key,
+operator:this._REVERSE_OPERATOR_MAP[c.operator],
+values:c.values
+};
+a.matchExpressions.push(d);
+}
+return JSON.stringify(a);
 }, LabelSelector.prototype._getStringForConjunct = function(a) {
 var b = a.key;
 if ("exists" == a.operator) return b + " exists";
@@ -38561,18 +38577,18 @@ angular.module("kubernetesUI");
 angular.module("kubernetesUI", []);
 }
 
-angular.module("kubernetesUI").factory("LabelFilter", [ function() {
-function a() {
+angular.module("kubernetesUI").factory("LabelFilter", [ "$location", function(a) {
+function b() {
 this._existingLabels = {}, this._labelSelector = new LabelSelector(null, (!0)), this._onActiveFiltersChangedCallbacks = $.Callbacks();
 }
-return a.prototype.addLabelSuggestionsFromResources = function(a, b) {
+return b.prototype.addLabelSuggestionsFromResources = function(a, b) {
 if (a.metadata && a.metadata.name) this._extractLabelsFromItem(a, b); else {
 var c = this;
 angular.forEach(a, function(a) {
 c._extractLabelsFromItem(a, b);
 });
 }
-}, a.prototype.setLabelSuggestions = function(a) {
+}, b.prototype.setLabelSuggestions = function(a) {
 if (this._existingLabels = a, this._labelFilterKeySelectize) {
 this._labelFilterKeySelectize.clearOptions();
 var b = this;
@@ -38580,16 +38596,33 @@ this._labelFilterKeySelectize.load(function(a) {
 a(b._getLabelFilterKeys());
 });
 }
-}, a.prototype._extractLabelsFromItem = function(a, b) {
+}, b.prototype.persistFilterState = function(a) {
+this._shouldPersistState = !!a;
+}, b.prototype._persistState = function() {
+if (this._shouldPersistState) if (this._labelSelector.isEmpty()) {
+var b = a.search();
+b.labelFilter = null, a.replace().search(b);
+} else {
+var b = a.search();
+b.labelFilter = this._labelSelector.exportJSON(), a.replace().search(b);
+}
+}, b.prototype.readPersistedState = function() {
+var b = a.search().labelFilter;
+if (b) try {
+this._labelSelector = new LabelSelector(JSON.parse(b), (!0));
+} catch (c) {
+this._labelSelector = new LabelSelector({}, (!0));
+} else this._labelSelector = new LabelSelector({}, (!0));
+}, b.prototype._extractLabelsFromItem = function(a, b) {
 var c = a.metadata ? a.metadata.labels :{};
 angular.forEach(c, function(a, c) {
 b[c] || (b[c] = []), b[c].push({
 value:a
 });
 });
-}, a.prototype.getLabelSelector = function() {
+}, b.prototype.getLabelSelector = function() {
 return this._labelSelector;
-}, a.prototype.setLabelSelector = function(a, b) {
+}, b.prototype.setLabelSelector = function(a, b) {
 if (this._labelFilterActiveFiltersElement && this._labelFilterActiveFiltersElement.empty(), this._labelSelector = a, this._labelFilterActiveElement) if (this._labelSelector.isEmpty()) this._labelFilterActiveElement.hide(); else {
 this._labelFilterActiveElement.show();
 var c = this;
@@ -38597,10 +38630,10 @@ this._labelSelector.each(function(a) {
 c._renderActiveFilter(a);
 });
 }
-b || this._onActiveFiltersChangedCallbacks.fire(this._labelSelector);
-}, a.prototype.onActiveFiltersChanged = function(a) {
+this._persistState(), b || this._onActiveFiltersChangedCallbacks.fire(this._labelSelector);
+}, b.prototype.onActiveFiltersChanged = function(a) {
 this._onActiveFiltersChangedCallbacks.add(a);
-}, a.prototype.setupFilterWidget = function(a, b, c) {
+}, b.prototype.setupFilterWidget = function(a, b, c) {
 var d = this, c = c || {};
 this._labelFilterRootElement = a, this._labelFilterActiveFiltersRootElement = b;
 var e = $("<div>").addClass("label-filter").appendTo(a);
@@ -38623,7 +38656,7 @@ var e = d._existingLabels;
 if (!e[c]) return void a({});
 for (var f = 0; f < e[c].length; f++) b.push(e[c][f]);
 a(b);
-}), d._labelFilterOperatorSelectizeInput.css("display", "inline-flex");
+}), d._labelFilterOperatorSelectizeInput.css("display", "inline-block");
 var e = d._labelFilterOperatorSelectize.getValue();
 e ? c.focus() :d._labelFilterOperatorSelectize.focus();
 },
@@ -38658,7 +38691,7 @@ type:"not in",
 label:"not in ..."
 } ],
 onItemAdd:function(a, b) {
-return "exists" == a || "does not exist" == a ? void d._labelFilterAddBtn.removeClass("disabled").prop("disabled", !1).focus() :(d._labelFilterValuesSelectizeInput.css("display", "inline-flex"), void d._labelFilterValuesSelectize.focus());
+return "exists" == a || "does not exist" == a ? void d._labelFilterAddBtn.removeClass("disabled").prop("disabled", !1).focus() :(d._labelFilterValuesSelectizeInput.css("display", "inline-block"), void d._labelFilterValuesSelectize.focus());
 },
 onItemRemove:function(a) {
 d._labelFilterValuesSelectizeInput.hide(), d._labelFilterValuesSelectize.clear(), d._labelFilterAddBtn.addClass("disabled").prop("disabled", !0);
@@ -38702,26 +38735,26 @@ d._labelFilterKeySelectize.clear(), d._labelFilterOperatorSelectizeInput.hide(),
 }), this._labelSelector.isEmpty() || (this._labelFilterActiveElement.show(), this._labelSelector.each(function(a) {
 d._renderActiveFilter(a);
 }));
-}, a.prototype._getLabelFilterKeys = function() {
+}, b.prototype._getLabelFilterKeys = function() {
 for (var a = [], b = Object.keys(this._existingLabels), c = 0; c < b.length; c++) a.push({
 key:b[c]
 });
 return a;
-}, a.prototype.addActiveFilter = function(a, b, c) {
+}, b.prototype.addActiveFilter = function(a, b, c) {
 this._labelFilterActiveElement.show(), this._addActiveFilter(a, b, c);
-}, a.prototype._addActiveFilter = function(a, b, c) {
+}, b.prototype._addActiveFilter = function(a, b, c) {
 var d = this._labelSelector.addConjunct(a, b, c);
-this._onActiveFiltersChangedCallbacks.fire(this._labelSelector), this._renderActiveFilter(d);
-}, a.prototype._renderActiveFilter = function(a) {
+this._persistState(), this._onActiveFiltersChangedCallbacks.fire(this._labelSelector), this._renderActiveFilter(d);
+}, b.prototype._renderActiveFilter = function(a) {
 $("<a>").addClass("label label-default label-filter-active-filter").prop("href", "javascript:;").prop("filter-label-id", a.id).click($.proxy(this, "_removeActiveFilter")).append($("<span>").text(a.string)).append($("<i>").addClass("fa fa-times")).appendTo(this._labelFilterActiveFiltersElement);
-}, a.prototype._removeActiveFilter = function(a) {
+}, b.prototype._removeActiveFilter = function(a) {
 var b = $(a.target).closest(".label-filter-active-filter"), c = b.prop("filter-label-id");
-b.remove(), 0 == $(".label-filter-active-filter", this._labelFilterActiveFiltersElement).length && this._labelFilterActiveElement.hide(), this._labelSelector.removeConjunct(c), this._onActiveFiltersChangedCallbacks.fire(this._labelSelector);
-}, a.prototype._clearActiveFilters = function() {
-this._labelSelector.clearConjuncts(), this._onActiveFiltersChangedCallbacks.fire(this._labelSelector);
-}, a.prototype.toggleFilterWidget = function(a) {
+b.remove(), 0 == $(".label-filter-active-filter", this._labelFilterActiveFiltersElement).length && this._labelFilterActiveElement.hide(), this._labelSelector.removeConjunct(c), this._persistState(), this._onActiveFiltersChangedCallbacks.fire(this._labelSelector);
+}, b.prototype._clearActiveFilters = function() {
+this._labelSelector.clearConjuncts(), this._persistState(), this._onActiveFiltersChangedCallbacks.fire(this._labelSelector);
+}, b.prototype.toggleFilterWidget = function(a) {
 this._labelFilterRootElement && (a ? this._labelFilterRootElement.show() :this._labelFilterRootElement.hide()), this._labelFilterActiveFiltersRootElement && (a ? this._labelFilterActiveFiltersRootElement.show() :this._labelFilterActiveFiltersRootElement.hide());
-}, new a();
+}, new b();
 } ]), function(a, b) {
 "function" == typeof define && define.amd ? define([ "angular", "d3" ], b) :b(a.angular, a.d3);
 }(this, function(a, b) {
@@ -52933,6 +52966,10 @@ d(function() {
 var c = h(e.document.querySelectorAll(a));
 c && (c.focus(), b && (c.value = "", c.value = b));
 }, l);
+}, p = function(a, b) {
+return "key-value-editor-key-" + a + "-" + b;
+}, q = function(a, b) {
+return "key-value-editor-value-" + a + "-" + b;
 };
 return {
 restrict:"AE",
@@ -52962,7 +52999,9 @@ cannotDelete:"=?",
 isReadonly:"=?",
 isReadonlyKeys:"=?",
 addRowLink:"@",
-showHeader:"=?"
+showHeader:"=?",
+allowEmptyKeys:"=?",
+keyRequiredError:"@"
 },
 link:function(b, e, g) {
 var h, i = c.get("key-value-editor.html");
@@ -52975,7 +53014,7 @@ b.grabFocus = void 0;
 a && (j(b.entries, function(a) {
 a.isReadonlyKey = !0;
 }), h());
-})), "cannotSort" in g && (i = i.replace(/as-sortable/g, "as-sortable-DISABLED"), b.cannotSort = !0), "showHeader" in g && (b.showHeader = !0), angular.extend(b, {
+})), "cannotSort" in g && (i = i.replace(/as-sortable/g, "as-sortable-DISABLED"), b.cannotSort = !0), "showHeader" in g && (b.showHeader = !0), "allowEmptyKeys" in g && (b.allowEmptyKeys = !0), angular.extend(b, {
 keyMinlength:f.keyMinlength || g.keyMinlength,
 keyMaxlength:f.keyMaxlength || g.keyMaxlength,
 valueMinlength:f.valueMinlength || g.valueMinlength,
@@ -52984,6 +53023,7 @@ keyValidator:f.keyValidator || g.keyValidator,
 valueValidator:f.valueValidator || g.valueValidator,
 keyValidatorError:f.keyValidatorError || g.keyValidatorError,
 valueValidatorError:f.valueValidatorError || g.valueValidatorError,
+keyRequiredError:f.keyRequiredError || g.keyRequiredError,
 keyValidatorErrorTooltip:f.keyValidatorErrorTooltip || g.keyValidatorErrorTooltip,
 keyValidatorErrorTooltipIcon:f.keyValidatorErrorTooltipIcon || g.keyValidatorErrorTooltipIcon,
 valueValidatorErrorTooltip:f.valueValidatorErrorTooltip || g.valueValidatorErrorTooltip,
@@ -53002,6 +53042,8 @@ forms:{},
 placeholder:m(),
 setFocusKeyClass:"key-value-editor-set-focus-key-" + e,
 setFocusValClass:"key-value-editor-set-focus-value-" + e,
+uniqueForKey:p,
+uniqueForValue:q,
 dragControlListeners:{
 accept:function(a, b) {
 return a.itemScope.sortableScope.$id === b.$id;
@@ -53031,6 +53073,12 @@ a.placeholder.value = "";
 },
 onAddRow:function() {
 n(a.entries), o("." + a.setFocusKeyClass);
+},
+hasKey:function(b, c) {
+if (!a.allowEmptyKeys) {
+var d = a.forms.keyValueEditor[p(e, c)].$viewValue;
+d ? a.forms.keyValueEditor[p(e, c)].$setValidity("noKey", !0) :a.forms.keyValueEditor[p(e, c)].$setValidity("noKey", !1);
+}
 }
 }), a.$watch("cannotDelete", function(b) {
 angular.isArray(b) && (a.cannotDeleteAny = !1, c = b);
@@ -53054,16 +53102,17 @@ valueMinlength:"",
 valueMaxlength:"",
 keyValidator:"[a-zA-Z0-9-_]+",
 valueValidator:"",
-keyValidatorError:void 0,
+keyValidatorError:"Validation error",
 keyValidatorErrorTooltip:void 0,
 keyValidatorErrorTooltipIcon:"pficon pficon-help",
-valueValidatorError:void 0,
+valueValidatorError:"Validation error",
 valueValidatorErrorTooltip:void 0,
 valueValidatorErrorTooltipIcon:"pficon pficon-help",
 secretValueTooltip:void 0,
 secretValueIcon:"fa fa-user-secret",
 keyPlaceholder:"",
-valuePlaceholder:""
+valuePlaceholder:"",
+keyRequiredError:"Key is required"
 };
 this.set = function(b, c) {
 angular.isObject(b) ? angular.extend(a, b) :a[b] = c;
@@ -53125,7 +53174,7 @@ mapEntries:n
 };
 } ]);
 }(), angular.module("key-value-editor").run([ "$templateCache", function(a) {
-a.put("key-value-editor.html", '<ng-form name="forms.keyValueEditor" novalidate ng-if="entries">\n  <div class="key-value-editor" ng-model="entries" as-sortable="dragControlListeners">\n\n    <div\n      ng-if="showHeader"\n      class="key-value-editor-entry">\n      <div class="form-group key-value-editor-header">\n        <div class="input-group">\n          <span class="help-block">{{keyPlaceholder}}</span>\n        </div>\n      </div>\n      <div class="form-group key-value-editor-header">\n        <div class="input-group">\n          <span class="help-block">{{valuePlaceholder}}</span>\n        </div>\n      </div>\n    </div>\n\n    <div\n      class="key-value-editor-entry"\n      ng-class-odd="\'odd\'"\n      ng-class-even="\'even\'"\n      ng-repeat="entry in entries"\n      as-sortable-item>\n      <!-- The name/key block -->\n      <div\n        class="form-group key-value-editor-input"\n        ng-class="{ \'has-error\' :  (forms.keyValueEditor[\'key-value-editor-key-\' + unique + \'-\' + $index].$invalid) }">\n\n        <label for="key-value-editor-key-{{unique}}-{{$index}}" class="sr-only">{{keyPlaceholder}}</label>\n\n        <!-- name/key has icon -->\n        <div class="input-group" ng-if="entry.keyIcon">\n          <span class="input-group-addon">\n            <span\n              class="{{entry.keyIcon}}"\n              aria-hidden="true"\n              data-toggle="tooltip"\n              data-placement="top"\n              data-original-title="{{entry.keyIconTooltip || keyIconTooltip}}"\n              title="{{entry.keyIconTooltip || keyIconTooltip}}"></span>\n          </span>\n\n          <input\n            type="text"\n            class="form-control"\n            ng-class="{ \'{{setFocusKeyClass}}\' : $last  }"\n            id="key-value-editor-key-{{unique}}-{{$index}}"\n            name="key-value-editor-key-{{unique}}-{{$index}}"\n            ng-attr-placeholder="{{ (!isReadonlyAny) && keyPlaceholder || \'\'}}"\n            ng-minlength="{{keyMinlength}}"\n            maxlength="{{keyMaxlength}}"\n            ng-model="entry.name"\n            ng-readonly="isReadonlyAny || isReadonlySome(entry.name) || entry.isReadonlyKey || entry.isReadonly"\n            ng-pattern="validation.key"\n            ng-value\n            ng-attr-key-value-editor-focus="{{grabFocus && $last}}">\n        </div>\n\n        <!-- name/key has no icon -->\n        <input\n          ng-if="(!entry.keyIcon)"\n          type="text"\n          class="form-control"\n          ng-class="{ \'{{setFocusKeyClass}}\' : $last  }"\n          id="key-value-editor-key-{{unique}}-{{$index}}"\n          name="key-value-editor-key-{{unique}}-{{$index}}"\n          ng-attr-placeholder="{{ (!isReadonlyAny) && keyPlaceholder || \'\'}}"\n          ng-minlength="{{keyMinlength}}"\n          maxlength="{{keyMaxlength}}"\n          ng-model="entry.name"\n          ng-readonly="isReadonlyAny || isReadonlySome(entry.name) || entry.isReadonlyKey || entry.isReadonly"\n          ng-pattern="validation.key"\n          ng-value\n          ng-attr-key-value-editor-focus="{{grabFocus && $last}}">\n        <!-- name/key help block -->\n        <span\n          class="help-block"\n          ng-show="(forms.keyValueEditor[\'key-value-editor-key-\' + unique + \'-\' + $index].$error.pattern)">\n          <span>{{ entry.keyValidatorError || keyValidatorError ||  \'validation error\' }}</span>\n          <span ng-if="entry.keyValidatorErrorTooltip || keyValidatorErrorTooltip" class="help action-inline">\n            <a\n              aria-hidden="true"\n              data-toggle="tooltip"\n              data-placement="top"\n              data-original-title="{{entry.keyValidatorErrorTooltip || keyValidatorErrorTooltip}}"\n              title="{{entry.keyValidatorErrorTooltip || keyValidatorErrorTooltip}}">\n              <i class="{{entry.keyValidatorErrorTooltipIcon || keyValidatorErrorTooltipIcon}}"></i>\n            </a>\n          </span>\n        </span>\n        <span\n          class="help-block"\n          ng-show="(forms.keyValueEditor[\'key-value-editor-key-\' + unique + \'-\' + $index].$error.minlength)">\n          <span>Minimum character count is {{keyMinlength}}</span>\n        </span>\n      </div>\n      <!-- the value block -->\n      <div\n        class="form-group key-value-editor-input"\n        ng-class="forms.keyValueEditor[\'key-value-editor-value-\' + unique + \'-\' + $index].$invalid ? \'has-error\' : \'\'">\n\n        <label for="key-value-editor-value-{{unique}}-{{$index}}" class="sr-only">{{valuePlaceholder}}</label>\n\n        <!-- value has icon -->\n        <div\n          class="input-group"\n          ng-if="entry.valueIcon">\n          <span class="input-group-addon">\n            <span\n              class="{{entry.valueIcon}}"\n              aria-hidden="true"\n              data-toggle="tooltip"\n              data-placement="top"\n              data-original-title="{{entry.valueIconTooltip || valueIconTooltip}}"\n              title="{{entry.valueIconTooltip || valueIconTooltip}}"></span>\n          </span>\n          <!-- valueAlt when value is not present or is on a separate object key such as valueFrom: { something: \'else\' } -->\n          <input\n            ng-if="entry.valueAlt"\n            type="text"\n            class="form-control"\n            ng-class="{ \'{{setFocusValClass}}\' : $last  }"\n            id="key-value-editor-value-{{unique}}-{{$index}}"\n            name="key-value-editor-value-{{unique}}-{{$index}}"\n            ng-attr-placeholder="{{ (!isReadonlyAny) && valuePlaceholder || \'\'}}"\n            ng-model="entry.valueAlt"\n            readonly>\n          <!-- default value display -->\n          <input\n            ng-if="(!entry.valueAlt)"\n            type="text"\n            class="form-control"\n            ng-class="{ \'{{setFocusValClass}}\' : $last  }"\n            id="key-value-editor-value-{{unique}}-{{$index}}"\n            name="key-value-editor-value-{{unique}}-{{$index}}"\n            ng-attr-placeholder="{{ (!isReadonlyAny) && valuePlaceholder || \'\'}}"\n            ng-minlength="{{valueMinlength}}"\n            maxlength="{{valueMaxlength}}"\n            ng-model="entry.value"\n            ng-readonly="isReadonlyAny || isReadonlySome(entry.name) || entry.isReadonly"\n            ng-pattern="validation.val">\n        </div>\n\n        <!-- value has no icon -->\n        <div ng-if="(!entry.valueIcon)">\n          <!-- valueAlt when value is not present or is on a separate object key such as valueFrom: { something: \'else\' } -->\n          <input\n            ng-if="entry.valueAlt"\n            type="text"\n            class="form-control"\n            ng-class="{ \'{{setFocusValClass}}\' : $last  }"\n            id="key-value-editor-value-{{unique}}-{{$index}}"\n            name="key-value-editor-value-{{unique}}-{{$index}}"\n            ng-attr-placeholder="{{ (!isReadonlyAny) && valuePlaceholder || \'\'}}"\n            ng-model="entry.valueAlt"\n            readonly>\n\n          <!-- default value display -->\n          <input\n            ng-if="(!entry.valueAlt)"\n            type="text"\n            class="form-control"\n            ng-class="{ \'{{setFocusValClass}}\' : $last  }"\n            id="key-value-editor-value-{{unique}}-{{$index}}"\n            name="key-value-editor-value-{{unique}}-{{$index}}"\n            ng-attr-placeholder="{{ (!isReadonlyAny) && valuePlaceholder || \'\'}}"\n            ng-minlength="{{valueMinlength}}"\n            maxlength="{{valueMaxlength}}"\n            ng-model="entry.value"\n            ng-readonly="isReadonlyAny || isReadonlySome(entry.name) || entry.isReadonly"\n            ng-pattern="validation.val">\n        </div>\n\n        <!-- value help block -->\n        <span\n          class="help-block"\n          ng-show="(forms.keyValueEditor[\'key-value-editor-value-\' + unique + \'-\' + $index].$error.pattern)">\n          <span>{{ entry.valueValidatorError || valueValidatorError ||  \'validation error\' }}</span>\n          <span ng-if="entry.valueValidatorErrorTooltip || valueValidatorErrorTooltip" class="help action-inline">\n            <a\n              aria-hidden="true"\n              data-toggle="tooltip"\n              data-placement="top"\n              data-original-title="{{entry.valueValidatorErrorTooltip || valueValidatorErrorTooltip}}"\n              title="{{entry.valueValidatorErrorTooltip || valueValidatorErrorTooltip}}">\n              <i class="{{entry.valueValidatorErrorTooltipIcon || valueValidatorErrorTooltipIcon}}"></i>\n            </a>\n          </span>\n        </span>\n        <span\n          class="help-block"\n          ng-show="(forms.keyValueEditor[\'key-value-editor-value-\' + unique + \'-\' + $index].$error.minlength)">\n          <span>Minimum character count is {{valueMinlength}}</span>\n        </span>\n      </div>\n      <div class="key-value-editor-buttons">\n        <span\n          ng-if="(!cannotSort) && (entries.length > 1)"\n          class="fa fa-bars"\n          role="button"\n          aria-label="Move row"\n          aria-grabbed="false"\n          as-sortable-item-handle></span>\n        <a\n          href=""\n          class="pficon pficon-close as-sortable-item-delete"\n          role="button"\n          aria-label="Delete row"\n          ng-hide="cannotDeleteAny || cannotDeleteSome(entry.name) || entry.cannotDelete"\n          ng-click="deleteEntry($index, 1)"></a>\n      </div>\n    </div>\n\n    <div\n      class="key-value-editor-entry form-group"\n      ng-if="(!cannotAdd) && addRowLink">\n      <a\n        href=""\n        role="button"\n        aria-label="Add row"\n        ng-click="onAddRow()">{{ addRowLink }}</a>\n    </div>\n\n    <!-- the last one, placeholder -->\n    <div\n      class="key-value-editor-entry"\n      ng-if="!cannotAdd && (!addRowLink)">\n      <div\n        class="form-group key-value-editor-input">\n        <input\n          type="text"\n          class="form-control"\n          placeholder="{{keyPlaceholder}}"\n          ng-model="placeholder.name"\n          ng-focus="onFocusLastKey()">\n      </div>\n      <div\n        class="form-group key-value-editor-input">\n        <input\n          type="text"\n          class="form-control"\n          placeholder="{{valuePlaceholder}}"\n          ng-model="placeholder.value"\n          ng-focus="onFocusLastValue()">\n      </div>\n    </div>\n  </div>\n\n</ng-form>\n');
+a.put("key-value-editor.html", '<ng-form name="forms.keyValueEditor" novalidate ng-if="entries">\n  <div class="key-value-editor" ng-model="entries" as-sortable="dragControlListeners">\n\n    <div\n      ng-if="showHeader"\n      class="key-value-editor-entry">\n      <div class="form-group key-value-editor-header key-header">\n        <div class="input-group">\n          <span class="help-block">{{keyPlaceholder}}</span>\n        </div>\n      </div>\n      <div class="form-group key-value-editor-header value-header">\n        <div class="input-group">\n          <span class="help-block">{{valuePlaceholder}}</span>\n        </div>\n      </div>\n    </div>\n\n    <div\n      class="key-value-editor-entry"\n      ng-class-odd="\'odd\'"\n      ng-class-even="\'even\'"\n      ng-repeat="entry in entries"\n      as-sortable-item>\n      <!-- The name/key block -->\n\n      <div\n        class="form-group key-value-editor-input"\n        ng-class="{ \'has-error\' :  (forms.keyValueEditor[uniqueForKey(unique, $index)].$invalid) }">\n\n        <label for="uniqueForKey(unique, $index)" class="sr-only">{{keyPlaceholder}}</label>\n\n        <!-- name/key has icon -->\n        <div class="input-group" ng-if="entry.keyIcon">\n          <span class="input-group-addon">\n            <span\n              class="{{entry.keyIcon}}"\n              aria-hidden="true"\n              data-toggle="tooltip"\n              data-placement="top"\n              data-original-title="{{entry.keyIconTooltip || keyIconTooltip}}"\n              title="{{entry.keyIconTooltip || keyIconTooltip}}"></span>\n          </span>\n\n          <input\n            type="text"\n            class="form-control"\n            ng-class="{ \'{{setFocusKeyClass}}\' : $last  }"\n            id="{{uniqueForKey(unique, $index)}}"\n            name="{{uniqueForKey(unique, $index)}}"\n            ng-attr-placeholder="{{ (!isReadonlyAny) && keyPlaceholder || \'\'}}"\n            ng-minlength="{{keyMinlength}}"\n            maxlength="{{keyMaxlength}}"\n            ng-model="entry.name"\n            ng-readonly="isReadonlyAny || isReadonlySome(entry.name) || entry.isReadonlyKey || entry.isReadonly"\n            ng-pattern="validation.key"\n            ng-value\n            ng-keyup="hasKey(entry, $index)"\n            ng-attr-key-value-editor-focus="{{grabFocus && $last}}">\n        </div>\n\n        <!-- name/key has no icon -->\n        <input\n          ng-if="(!entry.keyIcon)"\n          type="text"\n          class="form-control"\n          ng-class="{ \'{{setFocusKeyClass}}\' : $last  }"\n          id="{{uniqueForKey(unique, $index)}}"\n          name="{{uniqueForKey(unique, $index)}}"\n          ng-attr-placeholder="{{ (!isReadonlyAny) && keyPlaceholder || \'\'}}"\n          ng-minlength="{{keyMinlength}}"\n          maxlength="{{keyMaxlength}}"\n          ng-model="entry.name"\n          ng-readonly="isReadonlyAny || isReadonlySome(entry.name) || entry.isReadonlyKey || entry.isReadonly"\n          ng-pattern="validation.key"\n          ng-value\n          ng-keyup="hasKey(entry, $index)"\n          ng-attr-key-value-editor-focus="{{grabFocus && $last}}">\n        <!-- name/key help block -->\n\n        <span\n          class="help-block key-validation-error"\n          ng-show="(forms.keyValueEditor[uniqueForKey(unique, $index)].$error.pattern)">\n          <span class="validation-text">{{ entry.keyValidatorError || keyValidatorError }}</span>\n          <span ng-if="entry.keyValidatorErrorTooltip || keyValidatorErrorTooltip" class="help action-inline">\n            <a\n              aria-hidden="true"\n              data-toggle="tooltip"\n              data-placement="top"\n              data-original-title="{{entry.keyValidatorErrorTooltip || keyValidatorErrorTooltip}}"\n              title="{{entry.keyValidatorErrorTooltip || keyValidatorErrorTooltip}}">\n              <i class="{{entry.keyValidatorErrorTooltipIcon || keyValidatorErrorTooltipIcon}}"></i>\n            </a>\n          </span>\n        </span>\n        <span\n          class="help-block key-min-length"\n          ng-show="(forms.keyValueEditor[uniqueForKey(unique, $index)].$error.minlength)">\n          <span class="validation-text">Minimum character count is {{keyMinlength}}</span>\n        </span>\n\n        <span\n          class="help-block key-validation-error"\n          ng-show="(forms.keyValueEditor[uniqueForKey(unique, $index)].$error.noKey)">\n          <span class="validation-text">{{keyRequiredError}}</span>\n        </span>\n      </div>\n      <!-- the value block -->\n      <div\n        class="form-group key-value-editor-input"\n        ng-class="forms.keyValueEditor[uniqueForValue(unique, $index)].$invalid ? \'has-error\' : \'\'">\n\n        <label for="uniqueForValue(unique, $index)" class="sr-only">{{valuePlaceholder}}</label>\n\n        <!-- value has icon -->\n        <div\n          class="input-group"\n          ng-if="entry.valueIcon">\n          <span class="input-group-addon">\n            <span\n              class="{{entry.valueIcon}}"\n              aria-hidden="true"\n              data-toggle="tooltip"\n              data-placement="top"\n              data-original-title="{{entry.valueIconTooltip || valueIconTooltip}}"\n              title="{{entry.valueIconTooltip || valueIconTooltip}}"></span>\n          </span>\n          <!-- valueAlt when value is not present or is on a separate object key such as valueFrom: { something: \'else\' } -->\n          <input\n            ng-if="entry.valueAlt"\n            type="text"\n            class="form-control"\n            ng-class="{ \'{{setFocusValClass}}\' : $last  }"\n            id="{{uniqueForValue(unique, $index)}}"\n            name="{{uniqueForValue(unique, $index)}}"\n            ng-attr-placeholder="{{ (!isReadonlyAny) && valuePlaceholder || \'\'}}"\n            ng-model="entry.valueAlt"\n            readonly>\n          <!-- default value display -->\n          <input\n            ng-if="(!entry.valueAlt)"\n            type="text"\n            class="form-control"\n            ng-class="{ \'{{setFocusValClass}}\' : $last  }"\n            id="{{uniqueForValue(unique, $index)}}"\n            name="{{uniqueForValue(unique, $index)}}"\n            ng-attr-placeholder="{{ (!isReadonlyAny) && valuePlaceholder || \'\'}}"\n            ng-minlength="{{valueMinlength}}"\n            maxlength="{{valueMaxlength}}"\n            ng-model="entry.value"\n            ng-readonly="isReadonlyAny || isReadonlySome(entry.name) || entry.isReadonly"\n            ng-pattern="validation.val"\n            ng-keyup="hasKey(entry, $index)">\n        </div>\n\n        <!-- value has no icon -->\n        <div ng-if="(!entry.valueIcon)">\n          <!-- valueAlt when value is not present or is on a separate object key such as valueFrom: { something: \'else\' } -->\n          <input\n            ng-if="entry.valueAlt"\n            type="text"\n            class="form-control"\n            ng-class="{ \'{{setFocusValClass}}\' : $last  }"\n            id="{{uniqueForValue(unique, $index)}}"\n            name="{{uniqueForValue(unique, $index)}}"\n            ng-attr-placeholder="{{ (!isReadonlyAny) && valuePlaceholder || \'\'}}"\n            ng-model="entry.valueAlt"\n            readonly>\n\n          <!-- default value display -->\n          <input\n            ng-if="(!entry.valueAlt)"\n            type="text"\n            class="form-control"\n            ng-class="{ \'{{setFocusValClass}}\' : $last  }"\n            id="{{uniqueForValue(unique, $index)}}"\n            name="{{uniqueForValue(unique, $index)}}"\n            ng-attr-placeholder="{{ (!isReadonlyAny) && valuePlaceholder || \'\'}}"\n            ng-minlength="{{valueMinlength}}"\n            maxlength="{{valueMaxlength}}"\n            ng-model="entry.value"\n            ng-readonly="isReadonlyAny || isReadonlySome(entry.name) || entry.isReadonly"\n            ng-pattern="validation.val"\n            ng-keyup="hasKey(entry, $index)">\n        </div>\n\n        <!-- value help block -->\n        <span\n          class="help-block value-validation-error"\n          ng-show="(forms.keyValueEditor[uniqueForValue(unique, $index)].$error.pattern)">\n          <span class="validation-text">{{ entry.valueValidatorError || valueValidatorError}}</span>\n          <span ng-if="entry.valueValidatorErrorTooltip || valueValidatorErrorTooltip" class="help action-inline">\n            <a\n              aria-hidden="true"\n              data-toggle="tooltip"\n              data-placement="top"\n              data-original-title="{{entry.valueValidatorErrorTooltip || valueValidatorErrorTooltip}}"\n              title="{{entry.valueValidatorErrorTooltip || valueValidatorErrorTooltip}}">\n              <i class="{{entry.valueValidatorErrorTooltipIcon || valueValidatorErrorTooltipIcon}}"></i>\n            </a>\n          </span>\n        </span>\n        <span\n          class="help-block value-min-length"\n          ng-show="(forms.keyValueEditor[uniqueForValue(unique, $index)].$error.minlength)">\n          <span class="validation-text">Minimum character count is {{valueMinlength}}</span>\n        </span>\n      </div>\n      <div class="key-value-editor-buttons">\n        <span\n          ng-if="(!cannotSort) && (entries.length > 1)"\n          class="fa fa-bars sort-row"\n          role="button"\n          aria-label="Move row"\n          aria-grabbed="false"\n          as-sortable-item-handle></span>\n        <a\n          href=""\n          class="pficon pficon-close delete-row as-sortable-item-delete"\n          role="button"\n          aria-label="Delete row"\n          ng-hide="cannotDeleteAny || cannotDeleteSome(entry.name) || entry.cannotDelete"\n          ng-click="deleteEntry($index, 1)"></a>\n      </div>\n    </div>\n\n    <div\n      class="key-value-editor-entry form-group"\n      ng-if="(!cannotAdd) && addRowLink">\n      <a\n        href=""\n        class="add-row-link"\n        role="button"\n        aria-label="Add row"\n        ng-click="onAddRow()">{{ addRowLink }}</a>\n    </div>\n\n    <!-- the last one, placeholder -->\n    <div\n      class="key-value-editor-entry"\n      ng-if="!cannotAdd && (!addRowLink)">\n      <div\n        class="form-group key-value-editor-input">\n        <input\n          type="text"\n          class="form-control add-row-input"\n          placeholder="{{keyPlaceholder}}"\n          ng-model="placeholder.name"\n          ng-focus="onFocusLastKey()">\n      </div>\n      <div\n        class="form-group key-value-editor-input">\n        <input\n          type="text"\n          class="form-control add-row-input"\n          placeholder="{{valuePlaceholder}}"\n          ng-model="placeholder.value"\n          ng-focus="onFocusLastValue()">\n      </div>\n    </div>\n  </div>\n\n</ng-form>\n');
 } ]), function() {
 "use strict";
 var a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t = [].slice;
